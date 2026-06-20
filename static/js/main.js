@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         selectedUpdate: null,
         activeStyle: 'pro', // Default tweet composer style
-        lastRefreshed: null
+        lastRefreshed: null,
+        theme: 'dark'
     };
 
     // DOM Elements
@@ -21,6 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
         notesContainer: document.getElementById('notes-container'),
         emptyState: document.getElementById('empty-state'),
         refreshBtn: document.getElementById('refresh-btn'),
+        exportCsvBtn: document.getElementById('export-csv-btn'),
+        themeToggleBtn: document.getElementById('theme-toggle-btn'),
+        themeToggleText: document.getElementById('theme-toggle-text'),
+        themeIconLight: document.querySelector('.theme-icon-light'),
+        themeIconDark: document.querySelector('.theme-icon-dark'),
         spinnerIcon: document.querySelector('.spinner-icon'),
         searchInput: document.getElementById('search-input'),
         categoryFilters: document.getElementById('category-filters'),
@@ -333,11 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             </svg>
                             <span>Tweet Update</span>
                         </button>
-                        <button class="btn btn-secondary btn-icon copy-link-btn" title="Copy update details link">
+                        <button class="btn btn-secondary btn-icon copy-link-btn" title="Copy to clipboard">
                             <svg class="icon-size" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M8 5H6C4.89543 5 4 5.89543 4 7V19C4 20.1046 4.89543 21 6 21H16C17.1046 21 18 20.1046 18 19V17M8 5C8 6.10457 8.89543 7 10 7H14C15.1046 7 16 6.10457 16 5M8 5C8 3.89543 8.89543 3 10 3H14C15.1046 3 16 3.89543 16 5M12 11H16M10 14H16M13 17H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
-                            <span>Copy details</span>
+                            <span>Copy to Clipboard</span>
                         </button>
                     </div>
                 `;
@@ -380,6 +386,104 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Clipboard copy failed:", err);
                 showToast("Could not copy details automatically.", true);
             });
+    }
+
+    // Exports filtered updates to CSV file
+    function exportToCSV() {
+        const dataToExport = state.filteredUpdates;
+        if (!dataToExport || dataToExport.length === 0) {
+            showToast("No release notes to export.", true);
+            return;
+        }
+
+        const headers = ["ID", "Date", "Raw Date", "Type", "Content (Plain Text)", "Link"];
+        const rows = dataToExport.map(item => [
+            item.id || '',
+            item.date || '',
+            item.raw_date || '',
+            item.type || '',
+            item.plain_text || '',
+            item.feed_link || ''
+        ]);
+
+        const escapeCSV = (val) => {
+            if (val === null || val === undefined) return '';
+            let stringVal = String(val);
+            stringVal = stringVal.replace(/"/g, '""');
+            if (stringVal.includes(',') || stringVal.includes('\n') || stringVal.includes('\r') || stringVal.includes('"')) {
+                return `"${stringVal}"`;
+            }
+            return stringVal;
+        };
+
+        const csvContent = [
+            headers.map(escapeCSV).join(','),
+            ...rows.map(row => row.map(escapeCSV).join(','))
+        ].join('\r\n');
+
+        try {
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `bigquery_release_notes_${dateStr}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showToast("Exported to CSV successfully!");
+        } catch (error) {
+            console.error("CSV Export failed:", error);
+            showToast("Could not export CSV.", true);
+        }
+    }
+
+    // Toggle Color Theme
+    function toggleTheme() {
+        const isCurrentDark = document.body.classList.contains('dark-theme') || !document.body.classList.contains('light-theme');
+        
+        if (isCurrentDark) {
+            // Switch to Light mode
+            document.body.classList.remove('dark-theme');
+            document.body.classList.add('light-theme');
+            el.themeIconLight.style.display = 'inline-block';
+            el.themeIconDark.style.display = 'none';
+            el.themeToggleText.textContent = 'Dark Mode';
+            state.theme = 'light';
+            localStorage.setItem('theme', 'light');
+        } else {
+            // Switch to Dark mode
+            document.body.classList.remove('light-theme');
+            document.body.classList.add('dark-theme');
+            el.themeIconLight.style.display = 'none';
+            el.themeIconDark.style.display = 'inline-block';
+            el.themeToggleText.textContent = 'Light Mode';
+            state.theme = 'dark';
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
+    // Initialize Theme
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.body.classList.remove('dark-theme');
+            document.body.classList.add('light-theme');
+            el.themeIconLight.style.display = 'inline-block';
+            el.themeIconDark.style.display = 'none';
+            el.themeToggleText.textContent = 'Dark Mode';
+            state.theme = 'light';
+        } else {
+            document.body.classList.remove('light-theme');
+            document.body.classList.add('dark-theme');
+            el.themeIconLight.style.display = 'none';
+            el.themeIconDark.style.display = 'inline-block';
+            el.themeToggleText.textContent = 'Light Mode';
+            state.theme = 'dark';
+        }
     }
 
     // Helper to display a bottom-right toast message
@@ -557,6 +661,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Refresh action
     el.refreshBtn.addEventListener('click', fetchNotes);
 
+    // Export CSV action
+    el.exportCsvBtn.addEventListener('click', exportToCSV);
+
+    // Toggle theme action
+    el.themeToggleBtn.addEventListener('click', toggleTheme);
+
     // Search input typing
     el.searchInput.addEventListener('input', (event) => {
         state.filters.search = event.target.value;
@@ -624,5 +734,6 @@ document.addEventListener('DOMContentLoaded', () => {
     el.postTweetBtn.addEventListener('click', postTweet);
 
     // Run Initial Load
+    initTheme();
     fetchNotes();
 });

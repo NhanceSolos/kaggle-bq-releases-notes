@@ -46,6 +46,62 @@
 }
 
 /* ==========================================================================
+   LIGHT THEME OVERRIDES
+   ========================================================================== */
+body.light-theme {
+    --bg-main: 220 20% 97%;            /* Light Slate background */
+    --bg-card: 0 0% 100%;              /* Clean white card background */
+    --bg-sidebar: 220 20% 94%;         /* Slightly darker sidebar */
+    
+    --border-color: 220 15% 85%;       /* Light gray border */
+    --border-hover: 220 20% 70%;       /* Darker light gray border on hover */
+
+    --text-primary: 224 25% 12%;       /* Dark slate/black text */
+    --text-muted: 220 15% 38%;         /* Slate gray text */
+    --text-dark: 220 10% 55%;          /* Lighter slate gray text */
+
+    /* Adjust glows and shadows for light mode */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.06);
+    --glow-indigo: 0 0 15px rgba(139, 92, 246, 0.1);
+    --glow-blue: 0 0 15px rgba(37, 99, 235, 0.1);
+}
+
+body.light-theme input,
+body.light-theme textarea {
+    background: rgba(255, 255, 255, 0.95);
+    color: hsl(var(--text-primary));
+}
+
+body.light-theme .search-box input {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+body.light-theme .stat-card {
+    background: rgba(0, 0, 0, 0.01);
+}
+
+body.light-theme .filter-btn:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+body.light-theme .filter-btn.active {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+body.light-theme .tweet-context {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+body.light-theme .modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .modal-title svg {
+    color: hsl(var(--text-primary));
+}
+
+/* ==========================================================================
    RESET & BASE STYLES
    ========================================================================== */
 *, *::before, *::after {
