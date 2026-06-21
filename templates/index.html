@@ -74,6 +74,14 @@
                         </svg>
                         <input type="text" id="search-input" placeholder="Query keywords, SQL, APIs...">
                     </div>
+                    <div class="search-suggestions">
+                        <span class="suggestion-tag" data-query="SQL">#SQL</span>
+                        <span class="suggestion-tag" data-query="Storage">#Storage</span>
+                        <span class="suggestion-tag" data-query="Security">#Security</span>
+                        <span class="suggestion-tag" data-query="Billing">#Billing</span>
+                        <span class="suggestion-tag" data-query="Gemini">#Gemini</span>
+                        <span class="suggestion-tag" data-query="API">#API</span>
+                    </div>
                 </div>
 
                 <!-- Stats Dashboard -->
@@ -191,8 +199,16 @@
                         <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <h3>No release notes match your query</h3>
-                    <p>Try checking your spelling, removing tags, or searching for broader terms like "SQL" or "Gemini".</p>
-                    <button id="reset-search-btn" class="btn btn-secondary">Reset Search</button>
+                    <p>Try checking your spelling, removing tags, or searching for one of these suggestions:</p>
+                    <div class="search-suggestions empty-state-suggestions" style="margin-top: 1rem; justify-content: center; gap: 0.5rem; width: 100%;">
+                        <span class="suggestion-tag" data-query="SQL">#SQL</span>
+                        <span class="suggestion-tag" data-query="Storage">#Storage</span>
+                        <span class="suggestion-tag" data-query="Security">#Security</span>
+                        <span class="suggestion-tag" data-query="Billing">#Billing</span>
+                        <span class="suggestion-tag" data-query="Gemini">#Gemini</span>
+                        <span class="suggestion-tag" data-query="API">#API</span>
+                    </div>
+                    <button id="reset-search-btn" class="btn btn-secondary" style="margin-top: 1.5rem;">Reset Search</button>
                 </div>
 
             </section>
@@ -261,6 +277,13 @@
             
         </div>
     </div>
+
+    <!-- Floating Back to Top Button -->
+    <button id="back-to-top-btn" class="back-to-top-btn" title="Back to top">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </button>
 
     <!-- Toast Notification for Copy Actions -->
     <div id="toast" class="toast">

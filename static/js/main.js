@@ -324,13 +324,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Category class and badges
                 const badgeClass = getBadgeClass(item.type);
                 
+                const highlightedContent = highlightHTML(item.content, state.filters.search);
+                
                 cardEl.innerHTML = `
                     <div class="card-header">
                         <span class="badge ${badgeClass}">${item.type}</span>
                         <span class="card-meta">BigQuery Release</span>
                     </div>
                     <div class="card-body">
-                        ${item.content}
+                        ${highlightedContent}
                     </div>
                     <div class="card-actions">
                         <button class="btn btn-twitter btn-icon share-tweet-btn" title="Compose a Tweet about this update">
@@ -345,12 +347,23 @@ document.addEventListener('DOMContentLoaded', () => {
                             </svg>
                             <span>Copy to Clipboard</span>
                         </button>
+                        <button class="btn btn-secondary btn-icon share-btn" title="Share update details">
+                            <svg class="icon-size" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8.59 13.51L15.42 17.49M15.41 6.51L8.59 10.49M21 5C21 6.65685 19.6569 8 18 8C16.3431 8 15 6.65685 15 5C15 3.34315 16.3431 2 18 2C19.6569 2 21 3.34315 21 5ZM9 12C9 13.6569 7.65685 15 6 15C4.34315 15 3 13.6569 3 12C3 10.3431 4.34315 9 6 9C7.65685 9 9 10.3431 9 12ZM21 19C21 20.6569 19.6569 22 18 22C16.3431 22 15 20.6569 15 19C15 17.3431 16.3431 16 18 16C19.6569 16 21 17.3431 21 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Share</span>
+                        </button>
                     </div>
                 `;
 
                 // Bind actions
                 cardEl.querySelector('.share-tweet-btn').addEventListener('click', () => openTweetModal(item));
-                cardEl.querySelector('.copy-link-btn').addEventListener('click', () => copyDetails(item));
+                
+                const copyBtn = cardEl.querySelector('.copy-link-btn');
+                copyBtn.addEventListener('click', () => copyDetails(item, copyBtn));
+
+                const shareBtn = cardEl.querySelector('.share-btn');
+                shareBtn.addEventListener('click', () => shareUpdate(item, shareBtn));
 
                 groupEl.appendChild(cardEl);
             });
@@ -376,16 +389,96 @@ document.addEventListener('DOMContentLoaded', () => {
        ACTION HANDLERS
        ========================================================================== */
 
-    // Copies plain text or share URL to clipboard
-    function copyDetails(item) {
+    // Copies plain text or share URL to clipboard with button contextual feedback
+    function copyDetails(item, btnEl) {
         const text = `BigQuery Update [${item.date}] (${item.type}):\n${item.plain_text}\nRead more: ${item.feed_link}`;
         
         navigator.clipboard.writeText(text)
-            .then(() => showToast("Copied update details to clipboard!"))
+            .then(() => {
+                showToast("Copied update details to clipboard!");
+                if (btnEl) {
+                    const originalHTML = btnEl.innerHTML;
+                    btnEl.innerHTML = `
+                        <svg class="icon-size" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #10B981;">
+                            <path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span style="color: #10B981;">Copied!</span>
+                    `;
+                    btnEl.style.borderColor = "#10B981";
+                    setTimeout(() => {
+                        btnEl.innerHTML = originalHTML;
+                        btnEl.style.borderColor = "";
+                    }, 2000);
+                }
+            })
             .catch(err => {
                 console.error("Clipboard copy failed:", err);
                 showToast("Could not copy details automatically.", true);
             });
+    }
+
+    // Shares update details using Web Share API or falls back to clipboard
+    function shareUpdate(item, btnEl) {
+        const title = `BigQuery Release Note - ${item.date}`;
+        const text = `[${item.type}] ${item.plain_text}`;
+        const url = item.feed_link;
+
+        if (navigator.share) {
+            navigator.share({
+                title: title,
+                text: text,
+                url: url
+            })
+            .then(() => showToast("Shared successfully!"))
+            .catch(err => {
+                if (err.name !== 'AbortError') {
+                    console.error("Web Share failed:", err);
+                }
+            });
+        } else {
+            const copyText = `${title}\n${text}\nRead more: ${url}`;
+            navigator.clipboard.writeText(copyText)
+                .then(() => {
+                    showToast("Web share not supported. Copied details to clipboard instead!");
+                    if (btnEl) {
+                        const originalHTML = btnEl.innerHTML;
+                        btnEl.innerHTML = `
+                            <svg class="icon-size" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: #10B981;">
+                                <path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span style="color: #10B981;">Copied!</span>
+                        `;
+                        btnEl.style.borderColor = "#10B981";
+                        setTimeout(() => {
+                            btnEl.innerHTML = originalHTML;
+                            btnEl.style.borderColor = "";
+                        }, 2000);
+                    }
+                })
+                .catch(err => console.error("Fallback copy failed:", err));
+        }
+    }
+
+    // Highlights matching query terms in HTML safely (protecting tags and entities)
+    function highlightHTML(html, query) {
+        if (!query) return html;
+        const escapedQuery = query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&').trim();
+        if (!escapedQuery) return html;
+        
+        try {
+            const regex = new RegExp(`(<[^>]+>)|(&[^;]+;)|([^<&]+)`, 'g');
+            const searchRegex = new RegExp(`(${escapedQuery})`, 'gi');
+            
+            return html.replace(regex, (match, tag, entity, text) => {
+                if (text) {
+                    return text.replace(searchRegex, '<mark class="search-highlight">$1</mark>');
+                }
+                return match;
+            });
+        } catch (e) {
+            console.error("Highlighting error:", e);
+            return html;
+        }
     }
 
     // Exports filtered updates to CSV file
@@ -732,6 +825,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Open link intent to post
     el.postTweetBtn.addEventListener('click', postTweet);
+
+    // Search suggestions click behavior (global delegation to support empty state suggestions)
+    document.addEventListener('click', (e) => {
+        const tag = e.target.closest('.suggestion-tag');
+        if (tag) {
+            const query = tag.getAttribute('data-query');
+            el.searchInput.value = query;
+            state.filters.search = query;
+            applyFilters();
+        }
+    });
+
+    // Floating Back to Top Button scrolling & click (handles both inner scroll panel and full window scroll)
+    const backToTopBtn = document.getElementById('back-to-top-btn');
+    const feedPanel = document.querySelector('.dashboard-feed');
+    
+    if (backToTopBtn) {
+        const handleScroll = () => {
+            const feedScrollTop = feedPanel ? feedPanel.scrollTop : 0;
+            const windowScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const maxScroll = Math.max(feedScrollTop, windowScrollTop);
+            
+            if (maxScroll > 300) {
+                backToTopBtn.classList.add('show');
+            } else {
+                backToTopBtn.classList.remove('show');
+            }
+        };
+
+        if (feedPanel) {
+            feedPanel.addEventListener('scroll', handleScroll);
+        }
+        window.addEventListener('scroll', handleScroll);
+
+        backToTopBtn.addEventListener('click', () => {
+            if (feedPanel) {
+                feedPanel.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
 
     // Run Initial Load
     initTheme();
